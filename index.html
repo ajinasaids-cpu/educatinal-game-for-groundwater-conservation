@@ -1,0 +1,250 @@
+<!DOCTYPE html> 
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Groundwater Conservation Game - Daily Routine</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #e0f7fa;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    .screen {
+      display: none;  
+      padding: 20px;
+    }
+    .active {
+      display: block;
+    }
+    #waterMeter {
+      width: 300px;
+      height: 30px;
+      border: 2px solid #000;
+      margin: 20px auto;
+      background: #fff;
+      position: relative;
+    }
+    #waterLevel {
+      height: 100%;
+      background: #2196f3;
+      width: 100%;
+      transition: width 0.5s;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 8px;
+      border: none;
+      background: #4caf50;
+      color: white;
+    }
+    button:hover {
+      background: #388e3c;
+    }
+    .question {
+      margin: 20px 0;
+    }
+    input[type=text], input[type=password] {
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      width: 200px;
+      margin: 5px;
+    }
+    #leaderboard {
+      text-align: left;
+      max-width: 300px;
+      margin: 20px auto;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 10px;
+      background: #f1f8e9;
+    }
+    #leaderboard h3 {
+      margin: 0 0 10px 0;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Login Screen -->
+  <div id="login" class="screen active">
+    <h1>🔑 Login to Play</h1>
+    <input type="text" id="loginName" placeholder="Username"><br>
+    <input type="password" id="loginPass" placeholder="Password"><br>
+    <button onclick="login()">Login</button>
+    <button onclick="register()">Register</button>
+  </div>
+
+  <!-- Welcome Screen -->
+  <div id="welcome" class="screen">
+    <h1>💧 Groundwater Conservation Game 💧</h1>
+    <p>Subtopic: <strong>Daily Routine</strong></p>
+    <p>Welcome <span id="playerDisplay"></span>!</p>
+    <button onclick="startGame()">Start Game</button>
+    <div id="leaderboard">
+      <h3>🏆 Leaderboard</h3>
+      <ul id="leaderboardList"></ul>
+    </div>
+  </div>
+
+  <!-- Game Screen -->
+  <div id="game" class="screen">
+    <h2 id="greeting"></h2>
+    <div id="waterMeter">
+      <div id="waterLevel"></div>
+    </div>
+    <p>Water left: <span id="waterValue">100</span> 💧</p>
+    <div id="quizArea"></div>
+  </div>
+
+  <!-- Result Screen -->
+  <div id="result" class="screen">
+    <h2>Game Over!</h2>
+    <p id="finalMessage"></p>
+    <p>Your Score: <span id="finalScore"></span></p>
+    <button onclick="restartGame()">Play Again</button>
+  </div>
+
+  <script>
+    let water = 100;
+    let score = 0;
+    let currentQuestion = 0;
+    let playerName = "";
+
+    // Quiz Questions
+    const questions = [
+      { q: "Which is the best way to save water while brushing your teeth?", options: ["Keep tap running", "Use a mug to rinse"], answer: 1 },
+      { q: "Should you turn off taps when washing hands or dishes?", options: ["Yes, always", "No, leave running"], answer: 0 },
+      { q: "Fixing leaking taps in your house saves?", options: ["Very little water", "Many liters daily"], answer: 1 },
+      { q: "Best time to water plants in daily routine?", options: ["Noon", "Morning or Evening"], answer: 1 },
+      { q: "Collecting rainwater at home helps?", options: ["Recharge groundwater", "Waste water"], answer: 0 }
+    ];
+
+    // --- Login / Register ---
+    function register() {
+      const name = document.getElementById('loginName').value;
+      const pass = document.getElementById('loginPass').value;
+      if (!name || !pass) {
+        alert("Enter username and password!");
+        return;
+      }
+      let users = JSON.parse(localStorage.getItem("users")) || {};
+      if (users[name]) {
+        alert("User already exists!");
+        return;
+      }
+      users[name] = pass;
+      localStorage.setItem("users", JSON.stringify(users));
+      alert("✅ Registration successful! Please login.");
+    }
+
+    function login() {
+      const name = document.getElementById('loginName').value;
+      const pass = document.getElementById('loginPass').value;
+      let users = JSON.parse(localStorage.getItem("users")) || {};
+      if (users[name] && users[name] === pass) {
+        playerName = name;
+        document.getElementById("playerDisplay").textContent = playerName;
+        showScreen("welcome");
+        displayLeaderboard();
+      } else {
+        alert("❌ Invalid username or password!");
+      }
+    }
+
+    // --- Game Logic ---
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function startGame() {
+      document.getElementById('greeting').textContent = `Hello ${playerName}, let's save water in your daily routine!`;
+      showScreen('game');
+      loadQuestion();
+    }
+
+    function loadQuestion() {
+      if (currentQuestion >= questions.length) {
+        endGame();
+        return;
+      }
+      const q = questions[currentQuestion];
+      let quizHTML = `<div class="question"><h3>${q.q}</h3>`;
+      q.options.forEach((opt, i) => {
+        quizHTML += `<button onclick="checkAnswer(${i})">${opt}</button>`;
+      });
+      quizHTML += `</div>`;
+      document.getElementById('quizArea').innerHTML = quizHTML;
+    }
+
+    function checkAnswer(choice) {
+      const q = questions[currentQuestion];
+      if (choice === q.answer) {
+        score += 10;
+        alert("✅ Correct! You saved water!");
+      } else {
+        water -= 20;
+        if (water < 0) water = 0;
+        alert("❌ Wrong! Water wasted!");
+      }
+      updateWaterMeter();
+      currentQuestion++;
+      loadQuestion();
+    }
+
+    function updateWaterMeter() {
+      document.getElementById('waterLevel').style.width = water + "%";
+      document.getElementById('waterValue').textContent = water;
+      if (water <= 0) {
+        endGame();
+      }
+    }
+
+    function endGame() {
+      showScreen('result');
+      let message = water > 0 ? "Great job saving water in your daily routine!" : "Oh no! You wasted all the water!";
+      document.getElementById('finalMessage').textContent = message;
+      document.getElementById('finalScore').textContent = score;
+      saveScore(playerName, score);
+    }
+
+    function restartGame() {
+      water = 100;
+      score = 0;
+      currentQuestion = 0;
+      document.getElementById('waterLevel').style.width = "100%";
+      document.getElementById('waterValue').textContent = "100";
+      showScreen('welcome');
+      displayLeaderboard();
+    }
+
+    // --- Leaderboard ---
+    function saveScore(name, score) {
+      let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || []; multi user login the game plz generate the code 
+      leaderboard.push({ name, score });
+      leaderboard.sort((a, b) => b.score - a.score);
+      if (leaderboard.length > 5) leaderboard = leaderboard.slice(0, 5);
+      localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+      displayLeaderboard();
+    }
+
+    function displayLeaderboard() {
+      const leaderboardList = document.getElementById('leaderboardList');
+      const leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
+      leaderboardList.innerHTML = '';
+      leaderboard.forEach((player, i) => {
+        leaderboardList.innerHTML += `<li>${i+1}. ${player.name} - ${player.score}</li>`;
+      });
+    }
+  </script>
+</body>
+</html>
